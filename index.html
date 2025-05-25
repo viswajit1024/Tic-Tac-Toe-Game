@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f7f7f7;
+      margin-top: 30px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #mode-select {
+      margin-bottom: 20px;
+    }
+
+    select {
+      padding: 5px 10px;
+      font-size: 1em;
+    }
+
+    #scoreboard {
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+
+    #game {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5em;
+      cursor: pointer;
+      border: 2px solid #444;
+      transition: background-color 0.2s;
+    }
+
+    .cell:hover {
+      background-color: #eaeaea;
+    }
+
+    .win {
+      background-color: #90ee90 !important;
+    }
+
+    #status {
+      font-size: 1.3em;
+      margin-top: 10px;
+    }
+
+    button {
+      margin: 8px;
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tic Tac Toe</h1>
+
+  <div id="mode-select">
+    <label for="mode">Choose mode:</label>
+    <select id="mode" onchange="switchMode()">
+      <option value="computer">Play vs Computer</option>
+      <option value="2player">Two Player</option>
+    </select>
+  </div>
+
+  <div id="scoreboard">
+    🧑 Player X: <span id="xScore">0</span> | 👤 Player O / AI: <span id="oScore">0</span>
+  </div>
+
+  <div id="game"></div>
+  <div id="status"></div>
+
+  <button onclick="restartGame()">Restart Game</button>
+  <button onclick="resetScores()">Reset Scores</button>
+
+  <script>
+    const game = document.getElementById('game');
+    const status = document.getElementById('status');
+    const xScoreEl = document.getElementById('xScore');
+    const oScoreEl = document.getElementById('oScore');
+    const modeSelect = document.getElementById('mode');
+
+    let board = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let gameOver = false;
+    let mode = 'computer';
+    let scores = { X: 0, O: 0 };
+
+    function renderBoard() {
+      game.innerHTML = '';
+      board.forEach((cell, index) => {
+        const cellDiv = document.createElement('div');
+        cellDiv.classList.add('cell');
+        cellDiv.textContent = cell;
+        cellDiv.addEventListener('click', () => handleClick(index));
+        game.appendChild(cellDiv);
+      });
+    }
+
+    function handleClick(index) {
+      if (board[index] || gameOver) return;
+
+      board[index] = currentPlayer;
+      renderBoard();
+
+      if (checkWinner(currentPlayer)) {
+        endGame(currentPlayer);
+        return;
+      }
+
+      if (board.every(cell => cell)) {
+        endGame(null);
+        return;
+      }
+
+      if (mode === 'computer' && currentPlayer === 'X') {
+        currentPlayer = 'O';
+        status.textContent = "AI's turn...";
+        setTimeout(aiMove, 500);
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        status.textContent = `${currentPlayer}'s turn`;
+      }
+    }
+
+    function aiMove() {
+      const emptyIndexes = board.map((val, idx) => val === null ? idx : null).filter(v => v !== null);
+      if (emptyIndexes.length === 0 || gameOver) return;
+
+      const move = emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
+      board[move] = 'O';
+      renderBoard();
+
+      if (checkWinner('O')) {
+        endGame('O');
+      } else if (board.every(cell => cell)) {
+        endGame(null);
+      } else {
+        currentPlayer = 'X';
+        status.textContent = "Your turn (X)";
+      }
+    }
+
+    function checkWinner(player) {
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+
+      for (const pattern of winPatterns) {
+        const [a, b, c] = pattern;
+        if (board[a] === player && board[b] === player && board[c] === player) {
+          highlightWinningCells([a, b, c]);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function highlightWinningCells(cells) {
+      const allCells = document.querySelectorAll('.cell');
+      cells.forEach(index => allCells[index].classList.add('win'));
+    }
+
+    function endGame(winner) {
+      gameOver = true;
+      if (winner) {
+        scores[winner]++;
+        updateScores();
+        status.textContent = (mode === 'computer' && winner === 'O') ? "AI wins! 🤖" :
+                             (mode === 'computer' && winner === 'X') ? "You win! 🎉" :
+                             `${winner} wins! 🎉`;
+      } else {
+        status.textContent = "It's a draw! 🤝";
+      }
+    }
+
+    function updateScores() {
+      xScoreEl.textContent = scores.X;
+      oScoreEl.textContent = scores.O;
+    }
+
+    function restartGame() {
+      board = Array(9).fill(null);
+      currentPlayer = 'X';
+      gameOver = false;
+      status.textContent = mode === 'computer' ? "Your turn (X)" : `${currentPlayer}'s turn`;
+      renderBoard();
+    }
+
+    function resetScores() {
+      scores = { X: 0, O: 0 };
+      updateScores();
+      restartGame();
+    }
+
+    function switchMode() {
+      mode = modeSelect.value;
+      resetScores();
+    }
+
+    // Initialize
+    switchMode();
+  </script>
+</body>
+</html>
